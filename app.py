@@ -237,8 +237,8 @@ for title, q in queries.items():
                      "Most commonly available food types", 
                      "Number of claims per city", 
                      "Percentage of claims by status"]:
-            fig, ax = plt.subplots(figsize=(6, 4))  # Smaller figure
-            ax.bar(df_query.iloc[:, 0], df_query.iloc[:, 1], color="rainbow", edgecolor="black")
+            fig, ax = plt.subplots(figsize=(5, 3))  # Smaller figure
+            ax.bar(df_query.iloc[:, 0], df_query.iloc[:, 1], color="navy", edgecolor="navy")
             ax.set_title(title, fontsize=12)
             ax.set_ylabel(df_query.columns[1], fontsize=10)
             ax.set_xlabel(df_query.columns[0], fontsize=10)
