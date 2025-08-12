@@ -232,18 +232,19 @@ for title, q in queries.items():
         st.dataframe(df_query)
 
         # Optional charts for selected queries
-        if title in [
-            "Top food provider type by quantity", 
-            "City with highest number of food listings", 
-            "Most commonly available food types", 
-            "Number of claims per city", 
-            "Percentage of claims by status"
-        ] and not df_query.empty:
-            fig, ax = plt.subplots()
-            ax.bar(df_query.iloc[:, 0], df_query.iloc[:, 1])
-            ax.set_title(title)
-            plt.xticks(rotation=45)
-            st.pyplot(fig)
+        if title in ["Top food provider type by quantity", 
+             "City with highest number of food listings", 
+             "Most commonly available food types", 
+             "Number of claims per city", 
+             "Percentage of claims by status"]:
+    fig, ax = plt.subplots(figsize=(6, 4))  # Smaller figure
+    ax.bar(df_query.iloc[:, 0], df_query.iloc[:, 1], color="skyblue", edgecolor="black")
+    ax.set_title(title, fontsize=12)
+    ax.set_ylabel(df_query.columns[1], fontsize=10)
+    ax.set_xlabel(df_query.columns[0], fontsize=10)
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=False)
 
     except Exception as e:
         st.error(f"Error running '{title}': {e}")
