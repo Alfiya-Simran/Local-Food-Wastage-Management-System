@@ -55,6 +55,7 @@ with tab1:
         st.success(f"🗑️ Food ID {food_id_to_delete} deleted")
 
 # ===================== TAB 2 - Filter & Contact =====================
+# ===================== TAB 2 - Filter & Contact =====================
 with tab2:
     st.header("Filter Food Donations")
     cities = pd.read_sql_query("SELECT DISTINCT Location FROM food_listings", conn)['Location'].dropna().tolist()
@@ -78,18 +79,16 @@ with tab2:
 
     if not filtered_df.empty:
         provider_ids_list = list(filtered_df['Provider_ID'].dropna().unique())
-        if provider_ids_list:
-            if len(provider_ids_list) == 1:
-                provider_ids_str = f"({provider_ids_list[0]})"
-            else:
-                provider_ids_str = str(tuple(provider_ids_list))
 
+        if provider_ids_list:
+            placeholders = ",".join("?" * len(provider_ids_list))
             contact_query = f"""
                 SELECT Provider_ID, Name, Contact
                 FROM providers
-                WHERE Provider_ID IN {provider_ids_str}
+                WHERE Provider_ID IN ({placeholders})
             """
-            contact_df = pd.read_sql_query(contact_query, conn)
+            contact_df = pd.read_sql_query(contact_query, conn, params=provider_ids_list)
+
             if not contact_df.empty:
                 st.subheader("Provider Contact Details")
                 st.dataframe(contact_df)
@@ -99,6 +98,7 @@ with tab2:
             st.info("No matching providers found.")
     else:
         st.info("No matching providers found.")
+
 
 # ===================== TAB 3 - Analysis (15 Queries) =====================
 with tab3:
