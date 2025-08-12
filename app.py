@@ -2,7 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
-conn = sqlite3.connect('food_wastage.db')
+conn = sqlite3.connect('dataset/food_wastage.db')
 c = conn.cursor()
 
 st.title("Food Listings CRUD Operations")
