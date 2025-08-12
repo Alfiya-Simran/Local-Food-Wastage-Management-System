@@ -60,7 +60,7 @@ ORDER BY Total_Quantity DESC
 LIMIT 10;
 '''
 
-df = pd.read_sql_query(query, sqlite3.connect('food_wastage.db'))
+df = pd.read_sql_query(query, sqlite3.connect('dataset/food_wastage.db'))
 
 fig, ax = plt.subplots()
 ax.barh(df['Name'], df['Total_Quantity'])
