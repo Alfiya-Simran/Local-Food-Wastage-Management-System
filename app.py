@@ -75,30 +75,30 @@ with tab2:
 
     filtered_df = pd.read_sql_query(query, conn)
     st.dataframe(filtered_df)
+
     if not filtered_df.empty:
         provider_ids_list = list(filtered_df['Provider_ID'].dropna().unique())
-        if provider_ids_list:# Build safe SQL tuple
-            provider_ids_tuple = tuple(provider_ids_list)
-            if len(provider_ids_tuple) == 1:
-                provider_ids_str = f"({provider_ids_tuple[0]})"
+        if provider_ids_list:
+            if len(provider_ids_list) == 1:
+                provider_ids_str = f"({provider_ids_list[0]})"
             else:
-                provider_ids_str = str(provider_ids_tuple)
-                query = f"""
+                provider_ids_str = str(tuple(provider_ids_list))
+
+            contact_query = f"""
                 SELECT Provider_ID, Name, Contact
                 FROM providers
                 WHERE Provider_ID IN {provider_ids_str}
-                """
-                contact_df = pd.read_sql_query(query, conn)
-                if not contact_df.empty:
-                    st.subheader("Provider Contact Details")
-                    st.dataframe(contact_df)
-               else:
-                    st.info("No contact details found for matching providers.")
+            """
+            contact_df = pd.read_sql_query(contact_query, conn)
+            if not contact_df.empty:
+                st.subheader("Provider Contact Details")
+                st.dataframe(contact_df)
+            else:
+                st.info("No contact details found for matching providers.")
         else:
             st.info("No matching providers found.")
     else:
         st.info("No matching providers found.")
-
 
 # ===================== TAB 3 - Analysis (15 Queries) =====================
 with tab3:
@@ -210,7 +210,6 @@ with tab3:
         df_query = pd.read_sql_query(q, conn)
         st.dataframe(df_query)
 
-        # Chart for selected queries
         if title in ["Top food provider type by quantity", "City with highest number of food listings", 
                      "Most commonly available food types", "Number of claims per city", "Percentage of claims by status"]:
             fig, ax = plt.subplots()
