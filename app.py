@@ -55,42 +55,46 @@ with tab1:
         st.success(f"🗑️ Food ID {food_id_to_delete} deleted")
 
 # ===================== TAB 2 - Filter & Contact =====================
+# ===================== TAB 2 - Filter & Contact =====================
 with tab2:
     st.header("Filter Food Donations")
-    cities = pd.read_sql_query("SELECT DISTINCT Location FROM food_listings", conn)['Location'].dropna().tolist()
-    providers_type = pd.read_sql_query("SELECT DISTINCT Provider_Type FROM food_listings", conn)['Provider_Type'].dropna().tolist()
-    food_types = pd.read_sql_query("SELECT DISTINCT Food_Type FROM food_listings", conn)['Food_Type'].dropna().tolist()
+
+    # Load data once
+    listings_df = pd.read_sql_query("SELECT * FROM food_listings", conn)
+    providers_df = pd.read_sql_query("SELECT * FROM providers", conn)
+
+    # Dropdown filters
+    cities = sorted(listings_df['Location'].dropna().unique().tolist())
+    providers_type = sorted(listings_df['Provider_Type'].dropna().unique().tolist())
+    food_types = sorted(listings_df['Food_Type'].dropna().unique().tolist())
 
     city_filter = st.selectbox("Select City", ["All"] + cities)
     provider_filter = st.selectbox("Select Provider Type", ["All"] + providers_type)
     food_type_filter = st.selectbox("Select Food Type", ["All"] + food_types)
 
-    query = "SELECT * FROM food_listings WHERE 1=1"
+    # Apply filters in Pandas
+    filtered_df = listings_df.copy()
     if city_filter != "All":
-        query += f" AND Location='{city_filter}'"
+        filtered_df = filtered_df[filtered_df["Location"] == city_filter]
     if provider_filter != "All":
-        query += f" AND Provider_Type='{provider_filter}'"
+        filtered_df = filtered_df[filtered_df["Provider_Type"] == provider_filter]
     if food_type_filter != "All":
-        query += f" AND Food_Type='{food_type_filter}'"
+        filtered_df = filtered_df[filtered_df["Food_Type"] == food_type_filter]
 
-    filtered_df = pd.read_sql_query(query, conn)
+    # Show filtered listings
     st.dataframe(filtered_df)
 
-    # Safe Pandas-based contact fetching
+    # Show matching provider contacts
     if not filtered_df.empty:
-        provider_ids_list = list(filtered_df['Provider_ID'].dropna().unique())
+        matching_contacts = providers_df[
+            providers_df["Provider_ID"].isin(filtered_df["Provider_ID"])
+        ][["Provider_ID", "Name", "Contact"]]
 
-        if provider_ids_list:
-            all_providers_df = pd.read_sql_query("SELECT Provider_ID, Name, Contact FROM providers", conn)
-            contact_df = all_providers_df[all_providers_df['Provider_ID'].isin(provider_ids_list)]
-
-            if not contact_df.empty:
-                st.subheader("Provider Contact Details")
-                st.dataframe(contact_df)
-            else:
-                st.info("No contact details found for matching providers.")
+        if not matching_contacts.empty:
+            st.subheader("Provider Contact Details")
+            st.dataframe(matching_contacts)
         else:
-            st.info("No matching providers found.")
+            st.info("No contact details found for matching providers.")
     else:
         st.info("No matching providers found.")
 
