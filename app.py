@@ -77,12 +77,21 @@ with tab2:
     st.dataframe(filtered_df)
 
     if not filtered_df.empty:
-        provider_ids = tuple(filtered_df['Provider_ID'].unique())
+    provider_ids = tuple(filtered_df['Provider_ID'].unique())
+    if len(provider_ids) == 1:
+        provider_ids = f"({provider_ids[0]})"
+    elif len(provider_ids) > 1:
+        provider_ids = str(provider_ids)
+    
+    if provider_ids:  # Only run query if IDs exist
         contact_df = pd.read_sql_query(
             f"SELECT Provider_ID, Name, Contact FROM providers WHERE Provider_ID IN {provider_ids}", conn
         )
         st.subheader("Provider Contact Details")
         st.dataframe(contact_df)
+    else:
+        st.info("No matching providers found.")
+
 
 # ===================== TAB 3 - Analysis (15 Queries) =====================
 with tab3:
