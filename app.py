@@ -76,24 +76,28 @@ with tab2:
     filtered_df = pd.read_sql_query(query, conn)
     st.dataframe(filtered_df)
     if not filtered_df.empty:
-        provider_ids_list = list(filtered_df['Provider_ID'].unique())
-        if provider_ids_list:  # Run only if there's at least one provider ID
-            provider_ids_tuple = tuple(provider_ids_list)# Handle single element case (tuple syntax)
+        provider_ids_list = list(filtered_df['Provider_ID'].dropna().unique())
+        if provider_ids_list:# Build safe SQL tuple
+            provider_ids_tuple = tuple(provider_ids_list)
             if len(provider_ids_tuple) == 1:
                 provider_ids_str = f"({provider_ids_tuple[0]})"
             else:
                 provider_ids_str = str(provider_ids_tuple)
-                contact_df = pd.read_sql_query(
-                    f"SELECT Provider_ID, Name, Contact FROM providers WHERE Provider_ID IN {provider_ids_str}",
-                    conn
-                )
-                st.subheader("Provider Contact Details")
-                st.dataframe(contact_df)
+                query = f"""
+                SELECT Provider_ID, Name, Contact
+                FROM providers
+                WHERE Provider_ID IN {provider_ids_str}
+                """
+                contact_df = pd.read_sql_query(query, conn)
+                if not contact_df.empty:
+                    st.subheader("Provider Contact Details")
+                    st.dataframe(contact_df)
+               else:
+                    st.info("No contact details found for matching providers.")
         else:
             st.info("No matching providers found.")
     else:
         st.info("No matching providers found.")
-
 
 
 # ===================== TAB 3 - Analysis (15 Queries) =====================
