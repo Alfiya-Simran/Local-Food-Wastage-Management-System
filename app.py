@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # DB connection
-conn = sqlite3.connect('food_wastage.db')
+conn = sqlite3.connect('dataset/food_wastage.db')
 c = conn.cursor()
 
 st.title("Local Food Wastage Management System")
