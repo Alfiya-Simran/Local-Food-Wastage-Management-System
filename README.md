@@ -40,6 +40,21 @@ A Streamlit web application that helps manage surplus food and minimize wastage 
 
 ---
 
+## 🚀 Features
+- Provider Management: Add and manage food providers’ details.
+
+- Receiver Management: Register and track food receivers.
+
+- Food Listings: Post surplus food availability.
+
+- Claims Tracking: Manage and record food claims by receivers.
+
+- Database Integration: SQLite backend for persistent storage.
+
+- Data Analysis: Insights on food wastage trends using Jupyter Notebook.
+
+---
+
 ## ⚙️ Installation & Setup
 1. **Clone the repository**
 ```bash
@@ -55,6 +70,26 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 4. **Open the app in your browser at http://localhost:8501**
+
+---
+
+## 📊 Dataset
+- The data/ folder contains:
+
+  - CSV files with provider, receiver, food listings, and claims data.
+
+  - SQLite database (food_wastage.db) for integrated storage.
+
+---
+
+## 📒 Jupyter Notebook
+- The Local Food Wastage Management System.ipynb notebook includes:
+
+  - Data exploration
+
+  - Statistical analysis
+
+  - Visualizations for wastage trends
 
 ---
 
