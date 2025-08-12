@@ -77,7 +77,7 @@ with tab2:
     st.dataframe(filtered_df)
 
     if not filtered_df.empty:
-    provider_ids = tuple(filtered_df['Provider_ID'].unique())
+        provider_ids = tuple(filtered_df['Provider_ID'].unique())
     if len(provider_ids) == 1:
         provider_ids = f"({provider_ids[0]})"
     elif len(provider_ids) > 1:
