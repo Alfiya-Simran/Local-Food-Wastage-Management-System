@@ -26,16 +26,16 @@ A Streamlit web application that helps manage surplus food and minimize wastage 
 
 ## 📂 Project Structure
 ```bash
-├── app.py
-├── Local Food Wastage Management System.ipynb
-├── requirements.txt
+├── app.py                          # Main Streamlit application
+├── Local Food Wastage Management System.ipynb  # Jupyter notebook for data analysis/modeling
+├── requirements.txt                # Python dependencies
 ├── data/
-    ├──providers_data.csv
-    ├──receivers_data.csv
-    ├──food_listings_data.csv
-    ├──claims_data.csv
-    └──food_wastage.db
-└── README.md
+│   ├── providers_data.csv           # Information about food providers
+│   ├── receivers_data.csv           # Information about receivers
+│   ├── food_listings_data.csv       # Listings of surplus food
+│   ├── claims_data.csv              # Data on claimed food
+│   └── food_wastage.db              # SQLite database
+└── README.md                       # Project documentation
 ```
 
 ---
