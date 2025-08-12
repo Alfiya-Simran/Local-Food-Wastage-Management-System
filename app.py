@@ -58,45 +58,49 @@ with tab1:
 # ===================== TAB 2 - Filter & Contact =====================
 with tab2:
     st.header("Filter Food Donations")
-
-    # Load data once
-    listings_df = pd.read_sql_query("SELECT * FROM food_listings", conn)
-    providers_df = pd.read_sql_query("SELECT * FROM providers", conn)
-
-    # Dropdown filters
-    cities = sorted(listings_df['Location'].dropna().unique().tolist())
-    providers_type = sorted(listings_df['Provider_Type'].dropna().unique().tolist())
-    food_types = sorted(listings_df['Food_Type'].dropna().unique().tolist())
+    cities = pd.read_sql_query("SELECT DISTINCT Location FROM food_listings", conn)['Location'].dropna().tolist()
+    providers_type = pd.read_sql_query("SELECT DISTINCT Provider_Type FROM food_listings", conn)['Provider_Type'].dropna().tolist()
+    food_types = pd.read_sql_query("SELECT DISTINCT Food_Type FROM food_listings", conn)['Food_Type'].dropna().tolist()
 
     city_filter = st.selectbox("Select City", ["All"] + cities)
     provider_filter = st.selectbox("Select Provider Type", ["All"] + providers_type)
     food_type_filter = st.selectbox("Select Food Type", ["All"] + food_types)
 
-    # Apply filters in Pandas
-    filtered_df = listings_df.copy()
+    query = "SELECT * FROM food_listings WHERE 1=1"
     if city_filter != "All":
-        filtered_df = filtered_df[filtered_df["Location"] == city_filter]
+        query += f" AND Location='{city_filter}'"
     if provider_filter != "All":
-        filtered_df = filtered_df[filtered_df["Provider_Type"] == provider_filter]
+        query += f" AND Provider_Type='{provider_filter}'"
     if food_type_filter != "All":
-        filtered_df = filtered_df[filtered_df["Food_Type"] == food_type_filter]
+        query += f" AND Food_Type='{food_type_filter}'"
 
-    # Show filtered listings
+    filtered_df = pd.read_sql_query(query, conn)
     st.dataframe(filtered_df)
 
-    # Show matching provider contacts
     if not filtered_df.empty:
-        matching_contacts = providers_df[
-            providers_df["Provider_ID"].isin(filtered_df["Provider_ID"])
-        ][["Provider_ID", "Name", "Contact"]]
+        provider_ids_list = list(filtered_df['Provider_ID'].dropna().unique())
 
-        if not matching_contacts.empty:
-            st.subheader("Provider Contact Details")
-            st.dataframe(matching_contacts)
+        if provider_ids_list:  # Only run if IDs exist
+            placeholders = ",".join("?" for _ in provider_ids_list)
+            contact_query = f"""
+                SELECT Provider_ID, Name, Contact
+                FROM providers
+                WHERE Provider_ID IN ({placeholders})
+            """
+            try:
+                contact_df = pd.read_sql_query(contact_query, conn, params=provider_ids_list)
+                if not contact_df.empty:
+                    st.subheader("Provider Contact Details")
+                    st.dataframe(contact_df)
+                else:
+                    st.info("No contact details found for matching providers.")
+            except Exception as e:
+                st.error(f"Error fetching contact details: {e}")
         else:
-            st.info("No contact details found for matching providers.")
+            st.info("No matching providers found.")
     else:
         st.info("No matching providers found.")
+
 
 # ===================== TAB 3 - Analysis (15 Queries) =====================
 with tab3:
