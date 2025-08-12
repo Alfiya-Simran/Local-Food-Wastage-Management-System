@@ -41,17 +41,17 @@ A Streamlit web application that helps manage surplus food and minimize wastage 
 ---
 
 ## 🚀 Features
-- Provider Management: Add and manage food providers’ details.
+- **Provider Management:** Add and manage food providers’ details.
 
-- Receiver Management: Register and track food receivers.
+- **Receiver Management:** Register and track food receivers.
 
-- Food Listings: Post surplus food availability.
+- **Food Listings:** Post surplus food availability.
 
-- Claims Tracking: Manage and record food claims by receivers.
+- **Claims Tracking:** Manage and record food claims by receivers.
 
-- Database Integration: SQLite backend for persistent storage.
+- **Database Integration:** SQLite backend for persistent storage.
 
-- Data Analysis: Insights on food wastage trends using Jupyter Notebook.
+- **Data Analysis:** Insights on food wastage trends using Jupyter Notebook.
 
 ---
 
