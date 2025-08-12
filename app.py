@@ -203,17 +203,44 @@ with tab3:
         '''
     }
 
-    for title, q in queries.items():
-        st.subheader(title)
+   # Helper: check if table exists
+def table_exists(conn, table_name):
+    result = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        (table_name,)
+    ).fetchone()
+    return result is not None
+
+for title, q in queries.items():
+    # Detect required tables in the query
+    tables_in_query = [t for t in ["providers", "receivers", "claims", "food_listings"]
+                       if t in q.lower()]
+
+    # Skip if missing
+    if not all(table_exists(conn, t) for t in tables_in_query):
+        st.warning(f"⚠️ Skipping '{title}' — missing required tables: {tables_in_query}")
+        continue
+
+    try:
         df_query = pd.read_sql_query(q, conn)
+        st.subheader(title)
         st.dataframe(df_query)
 
-        if title in ["Top food provider type by quantity", "City with highest number of food listings", 
-                     "Most commonly available food types", "Number of claims per city", "Percentage of claims by status"]:
+        # Optional charts for selected queries
+        if title in [
+            "Top food provider type by quantity", 
+            "City with highest number of food listings", 
+            "Most commonly available food types", 
+            "Number of claims per city", 
+            "Percentage of claims by status"
+        ] and not df_query.empty:
             fig, ax = plt.subplots()
             ax.bar(df_query.iloc[:, 0], df_query.iloc[:, 1])
             ax.set_title(title)
             plt.xticks(rotation=45)
             st.pyplot(fig)
+
+    except Exception as e:
+        st.error(f"Error running '{title}': {e}")
 
 conn.close()
