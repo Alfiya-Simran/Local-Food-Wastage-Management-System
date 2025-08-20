@@ -54,32 +54,88 @@ with tab1:
         conn.commit()
         st.success(f"🗑️ Food ID {food_id_to_delete} deleted")
 
+    st.divider()
+    st.header("Manage Claims")
+
+    # Show existing claims
+    claims_df = pd.read_sql_query("SELECT * FROM claims", conn)
+    st.dataframe(claims_df)
+
+    with st.form("add_claim"):
+        st.subheader("Add Claim")
+        # Use available IDs from DB
+        food_ids = pd.read_sql_query("SELECT Food_ID FROM food_listings", conn)['Food_ID'].tolist()
+        receiver_ids = pd.read_sql_query("SELECT Receiver_ID FROM receivers", conn)['Receiver_ID'].tolist()
+        food_id_sel = st.selectbox("Food ID", food_ids)
+        receiver_id_sel = st.selectbox("Receiver ID", receiver_ids)
+        status_sel = st.selectbox("Status", ["Pending", "Completed", "Cancelled"])
+        submitted_claim = st.form_submit_button("Create Claim")
+        if submitted_claim:
+            try:
+                c.execute(
+                    "INSERT INTO claims (Food_ID, Receiver_ID, Status, Timestamp) VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
+                    (int(food_id_sel), int(receiver_id_sel), status_sel)
+                )
+                conn.commit()
+                st.success("✅ Claim created")
+            except Exception as e:
+                st.error(f"Failed to create claim: {e}")
+
+    st.subheader("Update Claim Status")
+    claim_id_update = st.number_input("Claim ID", min_value=1, key="claim_update_id")
+    new_status = st.selectbox("New Status", ["Pending", "Completed", "Cancelled"], key="claim_update_status")
+    if st.button("Update Claim"):
+        try:
+            c.execute("UPDATE claims SET Status=? WHERE Claim_ID=?", (new_status, int(claim_id_update)))
+            conn.commit()
+            st.success("✅ Claim updated")
+        except Exception as e:
+            st.error(f"Failed to update claim: {e}")
+
+    st.subheader("Delete Claim")
+    claim_id_delete = st.number_input("Claim ID to delete", min_value=1, key="claim_delete_id")
+    if st.button("Delete Claim"):
+        try:
+            c.execute("DELETE FROM claims WHERE Claim_ID=?", (int(claim_id_delete),))
+            conn.commit()
+            st.success("🗑️ Claim deleted")
+        except Exception as e:
+            st.error(f"Failed to delete claim: {e}")
+
 # ===================== TAB 2 - Filter & Contact =====================
 with tab2:
     st.header("Filter Food Donations")
     cities = pd.read_sql_query("SELECT DISTINCT Location FROM food_listings", conn)['Location'].dropna().tolist()
     providers_type = pd.read_sql_query("SELECT DISTINCT Provider_Type FROM food_listings", conn)['Provider_Type'].dropna().tolist()
     food_types = pd.read_sql_query("SELECT DISTINCT Food_Type FROM food_listings", conn)['Food_Type'].dropna().tolist()
+    meal_types = pd.read_sql_query("SELECT DISTINCT Meal_Type FROM food_listings", conn)['Meal_Type'].dropna().tolist()
 
     city_filter = st.selectbox("Select City", ["All"] + cities)
     provider_filter = st.selectbox("Select Provider Type", ["All"] + providers_type)
     food_type_filter = st.selectbox("Select Food Type", ["All"] + food_types)
+    meal_type_filter = st.selectbox("Select Meal Type", ["All"] + meal_types)
 
     query = "SELECT * FROM food_listings WHERE 1=1"
+    params = []
     if city_filter != "All":
-        query += f" AND Location='{city_filter}'"
+        query += " AND Location=?"
+        params.append(city_filter)
     if provider_filter != "All":
-        query += f" AND Provider_Type='{provider_filter}'"
+        query += " AND Provider_Type=?"
+        params.append(provider_filter)
     if food_type_filter != "All":
-        query += f" AND Food_Type='{food_type_filter}'"
+        query += " AND Food_Type=?"
+        params.append(food_type_filter)
+    if meal_type_filter != "All":
+        query += " AND Meal_Type=?"
+        params.append(meal_type_filter)
 
-    filtered_df = pd.read_sql_query(query, conn)
+    filtered_df = pd.read_sql_query(query, conn, params=params)
     st.dataframe(filtered_df)
 
     if not filtered_df.empty:
         provider_ids_list = list(filtered_df['Provider_ID'].dropna().unique())
-
-        if provider_ids_list:  # Only run if IDs exist
+        if provider_ids_list:
             placeholders = ",".join("?" for _ in provider_ids_list)
             contact_query = f"""
                 SELECT Provider_ID, Name, Contact
@@ -99,9 +155,6 @@ with tab2:
             st.info("No matching providers found.")
     else:
         st.info("No matching providers found.")
-
-
-
 
 # ===================== TAB 3 - Analysis (15 Queries) =====================
 with tab3:
@@ -208,45 +261,39 @@ with tab3:
         '''
     }
 
-   # Helper: check if table exists
-def table_exists(conn, table_name):
-    result = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-        (table_name,)
-    ).fetchone()
-    return result is not None
+    # Helper: check if table exists
+    def table_exists(conn, table_name):
+        result = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,)
+        ).fetchone()
+        return result is not None
 
-for title, q in queries.items():
-    # Detect required tables in the query
-    tables_in_query = [t for t in ["providers", "receivers", "claims", "food_listings"]
-                       if t in q.lower()]
-
-    # Skip if missing
-    if not all(table_exists(conn, t) for t in tables_in_query):
-        st.warning(f"⚠️ Skipping '{title}' — missing required tables: {tables_in_query}")
-        continue
-
-    try:
-        df_query = pd.read_sql_query(q, conn)
-        st.subheader(title)
-        st.dataframe(df_query)
-
-        # Optional charts for selected queries
-        if title in ["Top food provider type by quantity", 
-                     "City with highest number of food listings", 
-                     "Most commonly available food types", 
-                     "Number of claims per city", 
-                     "Percentage of claims by status"]:
-            fig, ax = plt.subplots(figsize=(5.5, 4))  # Smaller figure
-            ax.bar(df_query.iloc[:, 0], df_query.iloc[:, 1], color="navy", edgecolor="navy")
-            ax.set_title(title, fontsize=12)
-            ax.set_ylabel(df_query.columns[1], fontsize=10)
-            ax.set_xlabel(df_query.columns[0], fontsize=10)
-            plt.xticks(rotation=45, ha='right')
-            plt.tight_layout()
-            st.pyplot(fig, use_container_width=False)
-
-    except Exception as e:
-        st.error(f"Error running '{title}': {e}")
+    for title, q in queries.items():
+        tables_in_query = [t for t in ["providers", "receivers", "claims", "food_listings"] if t in q.lower()]
+        if not all(table_exists(conn, t) for t in tables_in_query):
+            st.warning(f"⚠️ Skipping '{title}' — missing required tables: {tables_in_query}")
+            continue
+        try:
+            df_query = pd.read_sql_query(q, conn)
+            st.subheader(title)
+            st.dataframe(df_query)
+            if title in [
+                "Top food provider type by quantity",
+                "City with highest number of food listings",
+                "Most commonly available food types",
+                "Number of claims per city",
+                "Percentage of claims by status"
+            ] and not df_query.empty:
+                fig, ax = plt.subplots(figsize=(5.5, 4))
+                ax.bar(df_query.iloc[:, 0], df_query.iloc[:, 1], color="navy", edgecolor="navy")
+                ax.set_title(title, fontsize=12)
+                ax.set_ylabel(df_query.columns[1], fontsize=10)
+                ax.set_xlabel(df_query.columns[0], fontsize=10)
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                st.pyplot(fig, use_container_width=False)
+        except Exception as e:
+            st.error(f"Error running '{title}': {e}")
 
 conn.close()
