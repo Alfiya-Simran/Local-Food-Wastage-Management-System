@@ -134,53 +134,59 @@ with tab2:
     st.dataframe(filtered_df)
 
     if not filtered_df.empty:
-        provider_ids_list = list(filtered_df['Provider_ID'].dropna().unique())
-        if provider_ids_list:
-            # Check if any of these Provider_IDs exist in the providers table
-            placeholders = ",".join("?" for _ in provider_ids_list)
-            contact_query = f"""
-                SELECT Provider_ID, Name, Contact
-                FROM providers
-                WHERE Provider_ID IN ({placeholders})
-            """
-            try:
-                contact_df = pd.read_sql_query(contact_query, conn, params=provider_ids_list)
-                if not contact_df.empty:
-                    st.subheader("Provider Contact Details")
-                    st.dataframe(contact_df)
-                    
-                    # Show which Provider_IDs were found vs not found
-                    found_ids = set(contact_df['Provider_ID'])
-                    missing_ids = set(provider_ids_list) - found_ids
-                    if missing_ids:
-                        st.warning(f"⚠️ No contact details found for Provider_IDs: {list(missing_ids)[:10]}{'...' if len(missing_ids) > 10 else ''}")
+        # Instead of trying to match Provider_IDs, show provider info by type and location
+        st.subheader("📞 Provider Information by Type & Location")
+        
+        # Get unique provider types and locations from filtered results
+        unique_combinations = filtered_df[['Provider_Type', 'Location']].drop_duplicates()
+        
+        if not unique_combinations.empty:
+            # Find providers that match the type and location combinations
+            provider_info = []
+            for _, row in unique_combinations.iterrows():
+                provider_type = row['Provider_Type']
+                location = row['Location']
                 
-                # Data integrity check
-                st.subheader("🔍 Data Integrity Check")
-                st.info("""
-                **Note:** There's a mismatch between Provider_IDs in food_listings and providers tables.
-                - Food listings use IDs like 791, 478, 930
-                - Providers table has sequential IDs 1, 2, 3, 4, 5...
-                - This prevents proper contact lookup for most food items
-                """)
+                # Find providers with matching type and city
+                query = """
+                    SELECT Name, Type, Contact, City
+                    FROM providers 
+                    WHERE Type = ? AND City = ?
+                    LIMIT 3
+                """
+                try:
+                    matches = pd.read_sql_query(query, conn, params=(provider_type, location))
+                    if not matches.empty:
+                        for _, provider in matches.iterrows():
+                            provider_info.append({
+                                'Provider_Type': provider_type,
+                                'Location': location,
+                                'Name': provider['Name'],
+                                'Contact': provider['Contact']
+                            })
+                except Exception as e:
+                    st.error(f"Error fetching provider info: {e}")
+            
+            if provider_info:
+                provider_df = pd.DataFrame(provider_info)
+                st.dataframe(provider_df)
+                st.success(f"✅ Found {len(provider_info)} provider(s) matching your filters")
+            else:
+                st.info("No exact provider matches found, but you can still contact providers in the same city and type.")
                 
-                # Show sample data from both tables
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write("**Sample Provider_IDs from food_listings:**")
-                    sample_food_ids = pd.read_sql_query("SELECT DISTINCT Provider_ID FROM food_listings LIMIT 10", conn)
-                    st.dataframe(sample_food_ids)
-                
-                with col2:
-                    st.write("**Sample Provider_IDs from providers:**")
-                    sample_provider_ids = pd.read_sql_query("SELECT Provider_ID, Name FROM providers LIMIT 10", conn)
-                    st.dataframe(sample_provider_ids)
-                
-                st.info("💡 **Solution:** Run `python db_init.py` to rebuild the database with matching IDs, or manually align the Provider_IDs between tables.")
-            except Exception as e:
-                st.error(f"Error fetching contact details: {e}")
+                # Show general provider info for the selected city
+                if city_filter != "All":
+                    st.subheader(f"📍 All Providers in {city_filter}")
+                    city_providers = pd.read_sql_query(
+                        "SELECT Name, Type, Contact FROM providers WHERE City = ? LIMIT 10", 
+                        conn, 
+                        params=(city_filter,)
+                    )
+                    if not city_providers.empty:
+                        st.dataframe(city_providers)
+                        st.info("These are general providers in your selected city. Contact them to inquire about food availability.")
         else:
-            st.info("No matching providers found.")
+            st.info("No provider type/location combinations found in filtered results.")
     else:
         st.info("No matching providers found.")
 
