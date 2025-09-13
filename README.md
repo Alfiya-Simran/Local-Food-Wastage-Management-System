@@ -17,7 +17,7 @@ A Streamlit web application that helps manage surplus food and minimize wastage 
 ---
 
 ## 🛠️ Tech Stack
-- **Frontend:** [Streamlit](https://streamlit.io/)
+- **Frontend:** Streamlit
 - **Backend:** Python
 - **Database:** CSV / SQLite (depending on implementation)
 - **Libraries:** Pandas, NumPy, etc.
